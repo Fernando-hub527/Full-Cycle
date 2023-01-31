@@ -1,0 +1,41 @@
+version: '3'
+
+networks:
+  netFull:
+    driver:
+        bridge
+
+services:
+  db:
+    image: mysql:5.7
+    command: --innodb-use-native-aio=0
+    container_name: db
+    volumes:
+      - ./mysql:/var/lib/mysql
+    restart: always
+    tty: true
+    environment:
+      - MYSQL_DATABASE=nodedb
+      - MYSQL_ROOT_PASSWORD=root
+    networks:
+      - netFull
+    ports:
+      - 3306:3306
+
+  node:
+    build: ./node/
+    container_name: node
+    entrypoint: dockerize -wait tcp://db:3306 -timeout 20s node index.js
+    restart: "always"
+    depends_on:
+      - db
+    networks:
+      - netFull
+  
+  nginx:
+    build: ./nginx/
+    container_name: nginx
+    networks:
+      - netFull
+    ports:
+      - 8080:8080
